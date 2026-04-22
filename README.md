@@ -1,130 +1,124 @@
-# Electro Backend API
+# 🚀 Electro Backend API
 
-Backend API for an Electro-style E-commerce Platform built with Node.js, Express, and MongoDB.
+Backend service for a scalable **Electro-style E-commerce Platform**, built with Node.js, Express, and MongoDB.
+Designed with modular architecture, clean code principles, and production-ready practices.
 
-## Features
+---
 
-- Authentication and Authorization: JWT-based auth with role-based access control (`admin`, `seller`, `user`)
-- E-commerce Core: products, categories, cart, orders, addresses, discounts, reviews
-- Admin Features: analytics endpoints, user/shop/product moderation, audit logs
-- Payments: MoMo and VNPay integration (create payment, webhook/IPN, return URL)
-- File Upload: image upload via Multer + Cloudinary
-- Database: MongoDB with Mongoose ODM
-- API Design: modular RESTful API under versioned prefix
+## 📌 Overview
 
-## Tech Stack
+This backend provides a complete RESTful API system for:
 
-- Runtime: Node.js
-- Framework: Express.js
-- Database: MongoDB
-- ODM: Mongoose
-- Language: JavaScript (CommonJS)
-- Authentication: JWT (`jsonwebtoken`)
-- Validation: `express-validator`
-- File Upload: `multer`, `cloudinary`, `multer-storage-cloudinary`
-- Caching/Locking: Redis (`ioredis`)
-- Logging: Morgan
+* Multi-role authentication (`admin`, `seller`, `user`)
+* E-commerce operations (products, orders, cart, payments)
+* Admin management & analytics
+* Payment integrations (MoMo, VNPay)
+* Scalable and maintainable backend architecture
 
-## API Endpoints
+---
 
-Base URL: `/api/v1`
+## 🛠 Tech Stack
 
-### Health
+| Layer      | Technology           |
+| ---------- | -------------------- |
+| Runtime    | Node.js              |
+| Framework  | Express.js           |
+| Database   | MongoDB              |
+| ODM        | Mongoose             |
+| Auth       | JWT (`jsonwebtoken`) |
+| Validation | express-validator    |
+| Upload     | Multer + Cloudinary  |
+| Cache/Lock | Redis (`ioredis`)    |
 
-- `GET /health` - Service health check
+---
 
-### Authentication
+## ✨ Key Features
 
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login user
-- `GET /auth/me` - Get current user
-- `POST /auth/logout` - Logout
-- `POST /auth/refresh-token` - Refresh access token
-- `GET /auth/verify-email/:token` - Verify email
-- `POST /auth/forgot-password` - Request password reset
-- `POST /auth/reset-password` - Reset password
+### 🔐 Authentication & Authorization
 
-### Users (Admin)
+* JWT-based authentication
+* Refresh token flow
+* Role-based access control
 
-- `GET /users` - Get all users
-- `GET /users/:id` - Get single user
-- `PUT /users/:id` - Update user
-- `PUT /users/:id/block` - Block/unblock user
+### 🛍 E-commerce Core
 
-### Products
+* Product & category management
+* Cart & checkout system
+* Order lifecycle handling
+* Reviews & ratings
 
-- `GET /products` - Get all products
-- `GET /products/:id` - Get single product
-- `POST /products` - Create product (Seller/Admin)
-- `PUT /products/:id` - Update product (Seller/Admin)
-- `DELETE /products/:id` - Delete product (Seller/Admin)
-- `GET /products/pending` - Get pending products (Admin)
-- `POST /products/:id/approve` - Approve product (Admin)
-- `POST /products/:id/reject` - Reject product (Admin)
+### 🧑‍💼 Admin System
 
-### Categories
+* User / Product moderation
+* Analytics endpoints
+* Audit logging system
 
-- `GET /categories` - Get all categories
-- `GET /categories/:id` - Get single category
-- `POST /categories` - Create category (Admin)
-- `PUT /categories/:id` - Update category (Admin)
-- `DELETE /categories/:id` - Delete category (Admin)
+### 💳 Payments
 
-### Orders
+* MoMo integration (create + IPN)
+* VNPay integration (return + IPN)
 
-- `GET /orders` - Get current user orders
-- `GET /orders/:id` - Get order details
-- `POST /orders` - Create order (checkout)
-- `POST /orders/manual` - Create manual order (Admin/Seller)
-- `PUT /orders/:id/status` - Update order status (Admin/Seller)
-- `DELETE /orders/:id/cancel` - Cancel order
+### ☁️ File Upload
 
-### Payments
+* Image upload via Cloudinary
 
-- `POST /payments/momo/create` - Create MoMo payment URL
-- `POST /payments/momo/ipn` - MoMo webhook/IPN
-- `POST /payments/vnpay/create` - Create VNPay payment URL
-- `GET /payments/vnpay/return` - VNPay return URL
-- `GET /payments/vnpay/ipn` - VNPay IPN
-- `GET /payments/:orderId/status` - Check payment status
+---
 
-### Other Modules
+## 🔗 Main API Modules
 
-- `cart`, `addresses`, `discounts`, `shops`, `reviews`, `analytics`, `settings`, `audit-logs`, `notifications`
+| Module     | Description                   |
+| ---------- | ----------------------------- |
+| auth       | Authentication & user session |
+| users      | User management (Admin)       |
+| products   | Product CRUD & moderation     |
+| categories | Category management           |
+| orders     | Order processing              |
+| payments   | Payment integrations          |
+| cart       | Shopping cart                 |
+| reviews    | Product reviews               |
+| analytics  | Admin analytics               |
+| audit-logs | Activity tracking             |
 
-## Installation
+---
 
-### Clone and install
+## ⚙️ Installation
+
+### 1. Clone project
 
 ```bash
-git clone <repository-url>
-cd backend
+git clone https://github.com/your-username/ecommerce-backend.git
+cd ecommerce-backend
 npm install
 ```
 
-### Environment setup
+---
+
+### 2. Environment setup
 
 ```bash
 cp .env.example .env
 ```
 
-PowerShell:
+**Windows (PowerShell):**
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Update `.env` with your configuration:
+Update `.env`:
 
 ```env
 MONGODB_URI=mongodb://localhost:27017/ecommerce
 PORT=3000
 NODE_ENV=development
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-here
+
+JWT_SECRET=your-secret
+JWT_REFRESH_SECRET=your-refresh-secret
 ```
 
-### Run the application
+---
+
+### 3. Run project
 
 ```bash
 # Development
@@ -134,79 +128,91 @@ npm run dev
 npm start
 ```
 
-## Database Models
+---
 
-- User: authentication, profile, roles
-- Product: product details, inventory, category relation
-- Category: category hierarchy and metadata
-- Cart: user cart items and totals
-- Order: order lifecycle and payment information
-- Address: shipping addresses
-- Discount: promo and discount rules
-- Review: product ratings and comments
-- Shop: seller shop profile/status
-- AuditLog: activity tracking for state-changing actions
+## 🏗 Project Structure
 
-## Security Features
-
-- JWT Authentication: secure token-based auth
-- Password Hashing: `bcryptjs`
-- Input Validation: `express-validator`
-- CORS configuration with origin allow-list
-- Centralized error handler
-- Audit logging for mutable operations
-
-## Development
-
-### Scripts
-
-- `npm run dev` - Start development server with nodemon
-- `npm start` - Start production server
-- `npm test` - Placeholder test script (currently not implemented)
-
-### Project Structure
-
-```text
+```bash
 src/
-|- app.js
-|- configs/         # Database, Redis, Cloudinary configs
-|- controllers/     # Route controllers
-|- middlewares/     # Auth, upload, audit, error handling
-|- models/          # Mongoose models
-|- routes/          # API route modules
-|- services/        # Business logic and external integrations
-|- utils/           # Response helpers and utilities
+├── app.js
+├── configs/        # Database, Redis, Cloudinary configs
+├── controllers/    # Handle request/response
+├── services/       # Business logic layer
+├── models/         # Mongoose schemas
+├── routes/         # API routing
+├── middlewares/    # Auth, error, upload, audit
+├── utils/          # Helpers & utilities
 ```
 
-## API Response Format
+---
 
-### Success response
+## 🔐 Security
+
+* JWT Authentication & refresh token
+* Password hashing with bcrypt
+* Request validation
+* CORS protection
+* Centralized error handling
+* Audit logging for critical actions
+
+---
+
+## 📦 API Response Format
+
+### ✅ Success
 
 ```json
 {
-  "message": "Operation successful",
   "status": 200,
+  "message": "Success",
   "data": {}
 }
 ```
 
-### Error response
+### ❌ Error
 
 ```json
 {
   "status": 400,
-  "message": "Error description"
+  "message": "Error message"
 }
 ```
 
-## Contributing
+---
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes.
-4. Add or update tests where applicable.
-5. Submit a pull request.
+## 🧪 Testing
 
-## License
+Use tools like:
 
-This project is licensed under the ISC License.
+* Postman
+* Thunder Client
+
+---
+
+## 🚀 Future Improvements
+
+* Payment gateway expansion (Stripe, PayPal)
+* WebSocket real-time notifications
+* Microservices architecture
+* API documentation with Swagger
+
+---
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Open Pull Request
+
+---
+
+## 👨‍💻 Author
+
+**Huy Rua**
+
+---
+
+## 📄 License
+
+Licensed under the ISC License.
