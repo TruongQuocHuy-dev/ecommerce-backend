@@ -143,6 +143,31 @@ class ProductController {
       next(error);
     }
   };
+
+  /**
+   * POST /api/v1/products/bulk-delete
+   * Bulk delete products (seller/admin only)
+   */
+  bulkDeleteProducts = async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const userId = req.user.userId;
+      const { ids } = req.body;
+
+      const result = await ProductService.bulkDeleteProducts(ids, userId);
+
+      new OK({
+        message: result.message,
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new ProductController();

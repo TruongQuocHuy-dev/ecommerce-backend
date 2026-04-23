@@ -41,6 +41,21 @@ router.post(
   approvalController.bulkRejectProducts
 );
 
+router.post(
+  '/bulk-delete',
+  authenticate,
+  authorize('seller', 'admin'),
+  [
+    body('ids')
+      .isArray({ min: 1 })
+      .withMessage('Product IDs must be a non-empty array'),
+    body('ids.*')
+      .isMongoId()
+      .withMessage('Each product ID must be a valid MongoDB ObjectId'),
+  ],
+  productController.bulkDeleteProducts
+);
+
 // Consolidated stock management route (MUST be before /:id)
 router.get(
   '/stock',

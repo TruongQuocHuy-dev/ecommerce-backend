@@ -449,6 +449,63 @@ class ProductService {
   };
 
   /**
+   * Bulk delete products (soft delete)
+   */
+  static bulkDeleteProducts = async (productIds, userId) => {
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      throw new BadRequestError('Product IDs must be a non-empty array');
+    }
+
+    const user = await User.findById(userId).select('role');
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const query = {
+      _id: { $in: productIds },
+      isActive: true,
+    };
+
+    if (user.role !== 'admin') {
+      query.seller = userId;
+    }
+
+    const products = await Product.find(query).select('_id shop').lean();
+
+    if (products.length === 0) {
+      throw new NotFoundError('No active products found to delete');
+    }
+
+    const deletableIds = products.map((p) => p._id);
+
+    const result = await Product.updateMany(
+      { _id: { $in: deletableIds } },
+      { $set: { isActive: false } }
+    );
+
+    // Keep shop totalProducts in sync with soft-deleted products.
+    const shopDecreaseMap = products.reduce((acc, p) => {
+      if (!p.shop) return acc;
+      const shopId = p.shop.toString();
+      acc[shopId] = (acc[shopId] || 0) + 1;
+      return acc;
+    }, {});
+
+    const Shop = require('../models/shop.model');
+    await Promise.all(
+      Object.entries(shopDecreaseMap).map(([shopId, count]) =>
+        Shop.findByIdAndUpdate(shopId, { $inc: { totalProducts: -count } })
+      )
+    );
+
+    return {
+      message: `Successfully deleted ${result.modifiedCount} product(s)`,
+      deletedCount: result.modifiedCount,
+      requestedCount: productIds.length,
+    };
+  };
+
+  /**
    * Parse sort options
    */
   static parseSortOptions(sort) {
