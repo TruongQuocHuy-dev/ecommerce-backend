@@ -200,19 +200,12 @@ Use tools like:
 
 ## 🤝 Contributing
 
-1. Fork repository
-2. Create feature branch
-3. Commit changes
-4. Open Pull Request
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Add or update tests where applicable.
+5. Submit a pull request.
 
----
+## License
 
-## 👨‍💻 Author
-
-**Huy Rua**
-
----
-
-## 📄 License
-
-Licensed under the ISC License.
+This project is licensed under the ISC License.
