@@ -127,6 +127,14 @@ const productSchema = new mongoose.Schema(
       ref: 'Category',
       required: [true, 'Please provide a category'],
     },
+    brand: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Brand',
+    },
+    supplier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Supplier',
+    },
     images: {
       type: [String], // Array of Cloudinary URLs
       validate: {
@@ -286,6 +294,8 @@ productSchema.set('toObject', { virtuals: true });
 // Indexes for better query performance
 productSchema.index({ name: 'text', description: 'text' }); // Text search
 productSchema.index({ category: 1 }); // Category filter
+productSchema.index({ brand: 1 }); // Brand filter
+productSchema.index({ supplier: 1 }); // Supplier filter
 productSchema.index({ seller: 1 }); // Seller products
 productSchema.index({ price: 1 }); // Price sorting
 productSchema.index({ averageRating: -1 }); // Rating sorting

@@ -50,6 +50,8 @@ class ProductController {
         maxPrice: req.query.maxPrice,
         search: req.query.search,
         seller: req.query.seller,
+        brand: req.query.brand,
+        supplier: req.query.supplier,
         isFeatured: req.query.isFeatured,
         isActive: req.query.isActive,
         approvalStatus: req.query.approvalStatus,

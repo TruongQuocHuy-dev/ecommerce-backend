@@ -1,5 +1,7 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
+const Brand = require('../models/brand.model');
+const Supplier = require('../models/supplier.model');
 const User = require('../models/user.model');
 const {
   BadRequestError,
@@ -192,6 +194,7 @@ class ProductService {
   static createProduct = async (productData, sellerId, imageFiles) => {
     const {
       name, description, price, originalPrice, stock, category,
+      brand, supplier,
       tierVariations, skus, metaTitle, metaDescription, metaKeywords,
       isFeatured
     } = productData;
@@ -210,6 +213,20 @@ class ProductService {
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
       throw new NotFoundError('Category not found');
+    }
+
+    if (brand) {
+      const brandExists = await Brand.findById(brand);
+      if (!brandExists || !brandExists.isActive) {
+        throw new NotFoundError('Brand not found');
+      }
+    }
+
+    if (supplier) {
+      const supplierExists = await Supplier.findById(supplier);
+      if (!supplierExists || !supplierExists.isActive) {
+        throw new NotFoundError('Supplier not found');
+      }
     }
 
     // Handle dynamic file uploads from upload.any()
@@ -262,6 +279,8 @@ class ProductService {
       originalPrice: originalPrice || price,
       stock,
       category,
+      brand,
+      supplier,
       images: mainImages,
       tierVariations: parsedTierVariations,
       skus: parsedSkus,
@@ -283,6 +302,8 @@ class ProductService {
 
     // Populate category and seller info
     await product.populate('category', 'name slug');
+    await product.populate('brand', 'name slug');
+    await product.populate('supplier', 'name slug contactName email phone');
     await product.populate('seller', 'name email');
 
     // Notify admin if product is pending approval
@@ -301,6 +322,8 @@ class ProductService {
         discountPercentage: product.discountPercentage,
         stock: product.stock,
         category: product.category,
+        brand: product.brand,
+        supplier: product.supplier,
         images: product.images,
         seller: {
           id: product.seller._id,
@@ -325,6 +348,8 @@ class ProductService {
       maxPrice,
       search,
       seller,
+      brand,
+      supplier,
       isFeatured,
       isActive = true,
       approvalStatus,
@@ -365,6 +390,14 @@ class ProductService {
       query.seller = seller;
     }
 
+    if (brand) {
+      query.brand = brand;
+    }
+
+    if (supplier) {
+      query.supplier = supplier;
+    }
+
     // Featured filter
     if (isFeatured !== undefined) {
       query.isFeatured = isFeatured === 'true' || isFeatured === true;
@@ -395,6 +428,8 @@ class ProductService {
     const [products, totalCount] = await Promise.all([
       Product.find(query)
         .populate('category', 'name slug')
+        .populate('brand', 'name slug')
+        .populate('supplier', 'name slug contactName email phone')
         .populate('seller', 'name email')
         .sort(sortOptions)
         .skip(skip)
@@ -416,6 +451,8 @@ class ProductService {
         originalPrice: product.originalPrice,
         stock: product.stock,
         category: product.category,
+        brand: product.brand,
+        supplier: product.supplier,
         images: product.images,
         seller: {
           id: product.seller._id,
@@ -448,6 +485,8 @@ class ProductService {
   static getProductById = async (productId) => {
     const product = await Product.findById(productId)
       .populate('category', 'name slug description')
+      .populate('brand', 'name slug description country')
+      .populate('supplier', 'name slug contactName email phone address')
       .populate('seller', 'name email');
 
     if (!product) {
@@ -466,6 +505,8 @@ class ProductService {
         stock: product.stock,
         totalSold: product.skus ? product.skus.reduce((acc, sku) => acc + (sku.sold || 0), 0) : (product.sold || 0),
         category: product.category,
+        brand: product.brand,
+        supplier: product.supplier,
         images: product.images,
         seller: {
           id: product.seller._id,
@@ -508,6 +549,20 @@ class ProductService {
       const categoryExists = await Category.findById(updateData.category);
       if (!categoryExists) {
         throw new NotFoundError('Category not found');
+      }
+    }
+
+    if (updateData.brand) {
+      const brandExists = await Brand.findById(updateData.brand);
+      if (!brandExists || !brandExists.isActive) {
+        throw new NotFoundError('Brand not found');
+      }
+    }
+
+    if (updateData.supplier) {
+      const supplierExists = await Supplier.findById(updateData.supplier);
+      if (!supplierExists || !supplierExists.isActive) {
+        throw new NotFoundError('Supplier not found');
       }
     }
 
@@ -616,6 +671,8 @@ class ProductService {
 
     // Populate and return
     await product.populate('category', 'name slug');
+    await product.populate('brand', 'name slug');
+    await product.populate('supplier', 'name slug contactName email phone');
     await product.populate('seller', 'name email');
 
     if (product.approvalStatus === 'pending' && user.role === 'seller') {
@@ -632,6 +689,8 @@ class ProductService {
         originalPrice: product.originalPrice,
         stock: product.stock,
         category: product.category,
+        brand: product.brand,
+        supplier: product.supplier,
         images: product.images,
         seller: {
           id: product.seller._id,

@@ -12,6 +12,9 @@ const shopRoutes = require('./shop');
 const reviewController = require('../controllers/review.controller');
 const discountController = require('../controllers/discount.controller');
 const analyticsRoutes = require('./analytics');
+const inventoryRoutes = require('./inventory');
+const brandRoutes = require('./brand');
+const supplierRoutes = require('./supplier');
 const { auditLogger } = require('../middlewares/auditLog.middleware');
 const { authenticate, authorize, optionalAuthenticate } = require('../middlewares/authUtils');
 
@@ -62,6 +65,15 @@ router.use('/shops', shopRoutes);
 
 // Analytics routes (Admin)
 router.use('/analytics', analyticsRoutes);
+
+// Inventory routes (Admin)
+router.use('/inventory', inventoryRoutes);
+
+// Brand routes
+router.use('/brands', brandRoutes);
+
+// Supplier routes
+router.use('/suppliers', supplierRoutes);
 
 // Settings routes
 const settingRoutes = require('./setting');

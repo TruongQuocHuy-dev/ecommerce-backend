@@ -161,6 +161,14 @@ router.post(
       .withMessage('Category is required')
       .isMongoId()
       .withMessage('Category must be a valid ID'),
+    body('brand')
+      .optional()
+      .isMongoId()
+      .withMessage('Brand must be a valid ID'),
+    body('supplier')
+      .optional()
+      .isMongoId()
+      .withMessage('Supplier must be a valid ID'),
   ],
   productController.createProduct
 );
@@ -197,6 +205,14 @@ router.put(
       .optional()
       .isMongoId()
       .withMessage('Category must be a valid ID'),
+    body('brand')
+      .optional()
+      .isMongoId()
+      .withMessage('Brand must be a valid ID'),
+    body('supplier')
+      .optional()
+      .isMongoId()
+      .withMessage('Supplier must be a valid ID'),
   ],
   productController.updateProduct
 );
