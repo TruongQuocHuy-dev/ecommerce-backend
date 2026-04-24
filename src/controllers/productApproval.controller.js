@@ -142,8 +142,9 @@ class ProductApprovalController {
      */
     getOutOfStockProducts = async (req, res, next) => {
         try {
+            const sellerFilter = req.user.role === 'seller' ? req.user.userId : req.query.seller;
             const filters = {
-                seller: req.query.seller,
+                seller: sellerFilter,
                 category: req.query.category,
             };
 
@@ -170,8 +171,9 @@ class ProductApprovalController {
     getLowStockProducts = async (req, res, next) => {
         try {
             const threshold = req.query.threshold || 10;
+            const sellerFilter = req.user.role === 'seller' ? req.user.userId : req.query.seller;
             const filters = {
-                seller: req.query.seller,
+                seller: sellerFilter,
                 category: req.query.category,
             };
 
