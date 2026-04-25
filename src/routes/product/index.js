@@ -162,11 +162,13 @@ router.post(
       .isMongoId()
       .withMessage('Category must be a valid ID'),
     body('brand')
-      .optional()
+      .notEmpty()
+      .withMessage('Brand is required')
       .isMongoId()
       .withMessage('Brand must be a valid ID'),
     body('supplier')
-      .optional()
+      .notEmpty()
+      .withMessage('Supplier is required')
       .isMongoId()
       .withMessage('Supplier must be a valid ID'),
   ],

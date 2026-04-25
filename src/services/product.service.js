@@ -2,6 +2,9 @@ const Product = require('../models/product.model');
 const Category = require('../models/category.model');
 const Brand = require('../models/brand.model');
 const Supplier = require('../models/supplier.model');
+const InventoryWarehouse = require('../models/inventoryWarehouse.model');
+const InventoryStock = require('../models/inventoryStock.model');
+const InventoryMovement = require('../models/inventoryMovement.model');
 const User = require('../models/user.model');
 const {
   BadRequestError,
@@ -177,6 +180,8 @@ class ProductService {
       'originalPrice',
       'stock',
       'category',
+      'brand',
+      'supplier',
       'images',
       'tierVariations',
       'skus',
@@ -186,6 +191,60 @@ class ProductService {
     ];
 
     return moderationFields.some((field) => updateData[field] !== undefined);
+  }
+
+  static initializeInventoryForNewProduct = async (product, actorId) => {
+    let warehouse = await InventoryWarehouse.findOne({ isActive: true }).sort({ createdAt: 1 });
+
+    if (!warehouse) {
+      warehouse = await InventoryWarehouse.create({
+        name: 'Main Warehouse',
+        code: 'MAIN-AUTO',
+        description: 'Auto-created when creating product without preconfigured warehouse',
+        isActive: true,
+      });
+    }
+
+    const skuRows = product.skus && product.skus.length > 0
+      ? product.skus.map((sku) => ({ skuCode: sku.skuCode || 'default', quantity: sku.stock || 0 }))
+      : [{ skuCode: 'default', quantity: product.totalStock || product.stock || 0 }];
+
+    for (const row of skuRows) {
+      const result = await InventoryStock.findOneAndUpdate(
+        {
+          product: product._id,
+          warehouse: warehouse._id,
+          skuCode: row.skuCode,
+        },
+        {
+          $setOnInsert: {
+            product: product._id,
+            warehouse: warehouse._id,
+            skuCode: row.skuCode,
+            quantity: row.quantity,
+            reservedQuantity: 0,
+            lastMovementAt: new Date(),
+            updatedBy: actorId,
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      if (result.createdAt && row.quantity > 0) {
+        await InventoryMovement.create({
+          product: product._id,
+          warehouse: warehouse._id,
+          skuCode: row.skuCode,
+          movementType: 'inbound',
+          quantity: row.quantity,
+          reason: 'Initial stock on product creation',
+          note: 'Auto-created from product create flow',
+          actor: actorId,
+          beforeQuantity: 0,
+          afterQuantity: row.quantity,
+        });
+      }
+    }
   }
 
   /**
@@ -215,18 +274,22 @@ class ProductService {
       throw new NotFoundError('Category not found');
     }
 
-    if (brand) {
-      const brandExists = await Brand.findById(brand);
-      if (!brandExists || !brandExists.isActive) {
-        throw new NotFoundError('Brand not found');
-      }
+    if (!brand) {
+      throw new BadRequestError('Brand is required');
     }
 
-    if (supplier) {
-      const supplierExists = await Supplier.findById(supplier);
-      if (!supplierExists || !supplierExists.isActive) {
-        throw new NotFoundError('Supplier not found');
-      }
+    if (!supplier) {
+      throw new BadRequestError('Supplier is required');
+    }
+
+    const brandExists = await Brand.findById(brand);
+    if (!brandExists || !brandExists.isActive) {
+      throw new NotFoundError('Brand not found');
+    }
+
+    const supplierExists = await Supplier.findById(supplier);
+    if (!supplierExists || !supplierExists.isActive) {
+      throw new NotFoundError('Supplier not found');
     }
 
     // Handle dynamic file uploads from upload.any()
@@ -295,6 +358,9 @@ class ProductService {
       approvedBy: seller.role === 'admin' ? sellerId : undefined,
       approvedAt: seller.role === 'admin' ? new Date() : undefined,
     });
+
+    // Initialize inventory records for the newly created product.
+    await this.initializeInventoryForNewProduct(product, sellerId);
 
     // Increment shop totalProducts
     shop.totalProducts += 1;
