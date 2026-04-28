@@ -487,6 +487,155 @@ class DiscountService {
       },
     };
   };
+
+  /**
+   * Create a shop-scoped discount (Seller only)
+   */
+  static createSellerDiscount = async (sellerId, discountData) => {
+    const {
+      name,
+      code,
+      description,
+      type,
+      value,
+      minOrderValue,
+      maxDiscount,
+      startDate,
+      endDate,
+      usageLimit,
+      usagePerUser,
+      applicableProducts,
+    } = discountData;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      throw new BadRequestError('End date must be after start date');
+    }
+
+    if (type === 'percentage' && value > 100) {
+      throw new BadRequestError('Percentage discount cannot exceed 100%');
+    }
+
+    const existingDiscount = await Discount.findOne({ code: code.toUpperCase() });
+    if (existingDiscount) {
+      throw new BadRequestError('Discount code already exists');
+    }
+
+    const discount = await Discount.create({
+      name,
+      code: code.toUpperCase(),
+      description,
+      type,
+      value,
+      minOrderValue: minOrderValue || 0,
+      maxDiscount,
+      startDate: start,
+      endDate: end,
+      usageLimit,
+      usagePerUser: usagePerUser || 1,
+      applicableProducts: applicableProducts || [],
+      applicableCategories: [],
+      isActive: true,
+      scope: 'shop',
+      shopId: sellerId,
+      createdBy: sellerId,
+    });
+
+    return { discount };
+  };
+
+  /**
+   * Get all discounts created by a seller
+   */
+  static getSellerDiscounts = async (sellerId) => {
+    const discounts = await Discount.find({ shopId: sellerId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const now = new Date();
+    return {
+      discounts: discounts.map((d) => ({
+        id: d._id,
+        name: d.name,
+        code: d.code,
+        description: d.description,
+        type: d.type,
+        value: d.value,
+        minOrderValue: d.minOrderValue,
+        maxDiscount: d.maxDiscount,
+        startDate: d.startDate,
+        endDate: d.endDate,
+        usageLimit: d.usageLimit,
+        usageCount: d.usageCount,
+        usagePerUser: d.usagePerUser,
+        isActive: d.isActive,
+        isValid: d.isActive && now >= d.startDate && now <= d.endDate,
+        applicableProducts: d.applicableProducts,
+        createdAt: d.createdAt,
+      })),
+    };
+  };
+
+  /**
+   * Update a seller's own discount
+   */
+  static updateSellerDiscount = async (sellerId, discountId, updateData) => {
+    const discount = await Discount.findById(discountId);
+
+    if (!discount) {
+      throw new NotFoundError('Discount not found');
+    }
+
+    if (discount.shopId?.toString() !== sellerId.toString()) {
+      throw new ForbiddenError('You do not own this discount');
+    }
+
+    // Immutable fields
+    delete updateData.code;
+    delete updateData.usageCount;
+    delete updateData.usedBy;
+    delete updateData.scope;
+    delete updateData.shopId;
+
+    if (updateData.startDate || updateData.endDate) {
+      const start = new Date(updateData.startDate || discount.startDate);
+      const end = new Date(updateData.endDate || discount.endDate);
+      if (start >= end) {
+        throw new BadRequestError('End date must be after start date');
+      }
+    }
+
+    if (updateData.type === 'percentage' && updateData.value > 100) {
+      throw new BadRequestError('Percentage discount cannot exceed 100%');
+    }
+
+    Object.assign(discount, updateData);
+    await discount.save();
+
+    return { discount };
+  };
+
+  /**
+   * Deactivate a seller's own discount
+   */
+  static deactivateSellerDiscount = async (sellerId, discountId) => {
+    const discount = await Discount.findById(discountId);
+
+    if (!discount) {
+      throw new NotFoundError('Discount not found');
+    }
+
+    if (discount.shopId?.toString() !== sellerId.toString()) {
+      throw new ForbiddenError('You do not own this discount');
+    }
+
+    discount.isActive = false;
+    await discount.save();
+
+    return { message: 'Voucher deactivated successfully' };
+  };
 }
 
 module.exports = DiscountService;

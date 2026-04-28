@@ -17,6 +17,59 @@ router.use(authenticate);
 // MUST BE BEFORE authorize('admin')
 router.get('/available', discountController.getAvailableDiscounts);
 
+// ── Seller routes (no admin required, but ownership is validated in service) ──
+
+// GET /api/v1/discounts/seller/mine — list vouchers of current seller
+router.get('/seller/mine', discountController.getMyDiscounts);
+
+// POST /api/v1/discounts/seller — create shop voucher
+router.post(
+  '/seller',
+  [
+    body('name').notEmpty().withMessage('Voucher name is required').trim(),
+    body('code')
+      .notEmpty().withMessage('Voucher code is required')
+      .isLength({ min: 3, max: 20 }).withMessage('Code must be 3-20 characters'),
+    body('type')
+      .notEmpty()
+      .isIn(['percentage', 'fixed', 'freeship'])
+      .withMessage('Type must be percentage, fixed or freeship'),
+    body('value')
+      .notEmpty()
+      .isFloat({ min: 0 })
+      .withMessage('Value must be a positive number'),
+    body('minOrderValue').optional().isFloat({ min: 0 }),
+    body('maxDiscount').optional().isFloat({ min: 0 }),
+    body('startDate').notEmpty().isISO8601().withMessage('Valid start date is required'),
+    body('endDate').notEmpty().isISO8601().withMessage('Valid end date is required'),
+    body('usageLimit').optional().isInt({ min: 1 }),
+    body('usagePerUser').optional().isInt({ min: 1 }),
+    body('applicableProducts').optional().isArray(),
+  ],
+  discountController.createSellerDiscount
+);
+
+// PATCH /api/v1/discounts/seller/:id — update own voucher
+router.patch(
+  '/seller/:id',
+  [
+    body('name').optional().trim(),
+    body('type').optional().isIn(['percentage', 'fixed', 'freeship']),
+    body('value').optional().isFloat({ min: 0 }),
+    body('minOrderValue').optional().isFloat({ min: 0 }),
+    body('maxDiscount').optional().isFloat({ min: 0 }),
+    body('startDate').optional().isISO8601(),
+    body('endDate').optional().isISO8601(),
+    body('usageLimit').optional().isInt({ min: 1 }),
+    body('usagePerUser').optional().isInt({ min: 1 }),
+    body('isActive').optional().isBoolean(),
+  ],
+  discountController.updateSellerDiscount
+);
+
+// DELETE /api/v1/discounts/seller/:id — deactivate own voucher
+router.delete('/seller/:id', discountController.deactivateSellerDiscount);
+
 // Admin only routes
 router.use(authorize('admin'));
 

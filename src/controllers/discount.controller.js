@@ -167,6 +167,94 @@ class DiscountController {
       next(error);
     }
   };
+  /**
+   * POST /api/v1/discounts/seller
+   * Create shop-scoped discount (Seller only)
+   */
+  createSellerDiscount = async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const sellerId = req.user.userId;
+      const result = await DiscountService.createSellerDiscount(sellerId, req.body);
+
+      new CREATED({
+        message: 'Voucher created successfully',
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/v1/discounts/seller/mine
+   * Get all vouchers of current seller
+   */
+  getMyDiscounts = async (req, res, next) => {
+    try {
+      const sellerId = req.user.userId;
+      const result = await DiscountService.getSellerDiscounts(sellerId);
+
+      new OK({
+        message: 'Vouchers retrieved successfully',
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * PATCH /api/v1/discounts/seller/:id
+   * Update seller's own discount
+   */
+  updateSellerDiscount = async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const sellerId = req.user.userId;
+      const result = await DiscountService.updateSellerDiscount(
+        sellerId,
+        req.params.id,
+        req.body
+      );
+
+      new OK({
+        message: 'Voucher updated successfully',
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * DELETE /api/v1/discounts/seller/:id
+   * Deactivate seller's own discount
+   */
+  deactivateSellerDiscount = async (req, res, next) => {
+    try {
+      const sellerId = req.user.userId;
+      const result = await DiscountService.deactivateSellerDiscount(
+        sellerId,
+        req.params.id
+      );
+
+      new OK({
+        message: result.message,
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new DiscountController();
