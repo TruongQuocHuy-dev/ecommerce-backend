@@ -69,7 +69,11 @@ class OrderController {
     try {
       const userId = req.user.userId;
       const userRole = req.user.role;
-      const filters = { status: req.query.status, userId: req.query.userId };
+      const filters = { 
+        status: req.query.status, 
+        userId: req.query.userId,
+        asSeller: req.query.asSeller === 'true'
+      };
       const options = { page: req.query.page, limit: req.query.limit };
 
       const result = await OrderService.getUserOrders(userId, userRole, filters, options);

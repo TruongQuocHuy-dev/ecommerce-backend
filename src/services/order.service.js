@@ -525,17 +525,19 @@ class OrderService {
    * Get user orders with pagination
    */
   static getUserOrders = async (userId, userRole, filters, options) => {
-    const { status, userId: filterUserId } = filters;
+    const { status, userId: filterUserId, asSeller } = filters;
     const { page = 1, limit = 10 } = options;
 
     const query = {};
 
     // Admin can view all orders, or filter by specific user
     // Regular users only see their own orders
-    if (userRole !== 'admin') {
+    if (userRole === 'admin') {
+      if (filterUserId) query.user = filterUserId;
+    } else if (userRole === 'seller' && asSeller) {
+      query.seller = userId;
+    } else {
       query.user = userId;
-    } else if (filterUserId) {
-      query.user = filterUserId;
     }
 
     if (status) {
