@@ -2,9 +2,13 @@ const User = require('../models/user.model');
 const { NotFoundError } = require('../utils/error.response');
 
 class UserService {
-    static getAllUsers = async ({ page = 1, limit = 10, search = '' }) => {
+    static getAllUsers = async ({ page = 1, limit = 10, search = '', role = '' }) => {
         const skip = (page - 1) * limit;
         const query = {};
+
+        if (role) {
+            query.role = role;
+        }
 
         if (search) {
             query.$or = [

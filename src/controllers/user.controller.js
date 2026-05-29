@@ -8,8 +8,8 @@ class UserController {
      */
     getAllUsers = async (req, res, next) => {
         try {
-            const { page = 1, limit = 10, search = '' } = req.query;
-            const result = await UserService.getAllUsers({ page, limit, search });
+            const { page = 1, limit = 10, search = '', role = '' } = req.query;
+            const result = await UserService.getAllUsers({ page, limit, search, role });
 
             new OK({
                 message: 'Get users success',
