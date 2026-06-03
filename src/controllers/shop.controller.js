@@ -44,6 +44,15 @@ class ShopController {
         try {
             const shopData = { ...req.body };
 
+            // Parse address if it is submitted as a stringified JSON (common in multipart forms)
+            if (shopData.address && typeof shopData.address === 'string') {
+                try {
+                    shopData.address = JSON.parse(shopData.address);
+                } catch (e) {
+                    console.error('Error parsing shopData.address JSON:', e.message);
+                }
+            }
+
             // Handle uploaded files
             if (req.files) {
                 if (req.files.logo && req.files.logo.length > 0) {
@@ -109,7 +118,18 @@ class ShopController {
     // @access  Private/Seller
     async createShop(req, res) {
         try {
-            const shop = await ShopService.createShop(req.body, req.user.userId);
+            const shopData = { ...req.body };
+            
+            // Parse address if it is submitted as a stringified JSON
+            if (shopData.address && typeof shopData.address === 'string') {
+                try {
+                    shopData.address = JSON.parse(shopData.address);
+                } catch (e) {
+                    console.error('Error parsing shopData.address JSON in createShop:', e.message);
+                }
+            }
+
+            const shop = await ShopService.createShop(shopData, req.user.userId);
             res.status(201).json({
                 success: true,
                 data: shop,
@@ -128,6 +148,15 @@ class ShopController {
     async updateShop(req, res) {
         try {
             const updateData = { ...req.body };
+
+            // Parse address if it is submitted as a stringified JSON (common in multipart forms)
+            if (updateData.address && typeof updateData.address === 'string') {
+                try {
+                    updateData.address = JSON.parse(updateData.address);
+                } catch (e) {
+                    console.error('Error parsing updateData.address JSON:', e.message);
+                }
+            }
 
             // Handle uploaded files
             if (req.files) {

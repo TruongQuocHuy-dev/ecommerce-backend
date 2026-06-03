@@ -32,8 +32,9 @@ const auditLogger = (options = {}) => {
             if (req.method === 'POST') action = 'CREATE';
             if (req.method === 'DELETE') action = 'DELETE';
 
-        // Extract entity from route (first segment, singularized)
-        const pathParts = req.path.split('/').filter(Boolean);
+        // Extract entity from originalUrl (ignoring api, v1 and query params)
+        const urlPath = req.originalUrl.split('?')[0];
+        const pathParts = urlPath.split('/').filter((part) => part && part !== 'api' && part !== 'v1');
         let entityRaw = pathParts[0] || 'unknown';
 
         // Singularize naive plural only when ending with 's'
