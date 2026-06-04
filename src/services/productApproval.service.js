@@ -270,6 +270,7 @@ class ProductApprovalService {
                         stock: s.stock,
                         price: s.price,
                         tierIndex: s.tierIndex,
+                        images: s.images,
                     }))
                 };
             }),
@@ -333,6 +334,7 @@ class ProductApprovalService {
                         stock: s.stock,
                         price: s.price,
                         tierIndex: s.tierIndex,
+                        images: s.images,
                     }))
                 };
             }),

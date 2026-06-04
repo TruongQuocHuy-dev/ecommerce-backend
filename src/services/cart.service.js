@@ -126,6 +126,7 @@ class CartService {
         items: cart.items.map((item) => {
           let currentStock = item.product.stock;
           let currentPrice = item.product.price;
+          let currentImage = item.product.images?.[0] || '';
 
           // If SKU exists, get SKU-specific info
           if (item.skuId && item.product.skus) {
@@ -133,6 +134,9 @@ class CartService {
             if (sku) {
               currentStock = sku.stock;
               currentPrice = sku.price;
+              if (sku.images && sku.images.length > 0) {
+                currentImage = sku.images[0];
+              }
             }
           }
 
@@ -141,7 +145,7 @@ class CartService {
             product: {
               id: item.product._id,
               name: item.product.name,
-              image: item.product.images[0],
+              image: currentImage,
               sellerName: item.product.seller?.name || 'Shop',
             },
             skuId: item.skuId,

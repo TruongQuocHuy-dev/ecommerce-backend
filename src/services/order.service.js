@@ -108,6 +108,14 @@ class OrderService {
       }
 
       // Order item with SKU info
+      let orderItemImage = product.images?.[0] || '';
+      if (item.skuId && product.skus && product.skus.length > 0) {
+        const sku = product.skus.id(item.skuId);
+        if (sku && sku.images && sku.images.length > 0) {
+          orderItemImage = sku.images[0];
+        }
+      }
+
       orderItems.push({
         product: product._id,
         skuId: item.skuId || undefined,
@@ -117,7 +125,7 @@ class OrderService {
         name: product.name,
         price: item.price, // Use snapshot price from cart
         quantity: item.quantity,
-        image: product.images[0] || '',
+        image: orderItemImage,
       });
     }
 
@@ -364,6 +372,7 @@ class OrderService {
 
     // Validate items and check stock
     const orderItems = [];
+    const lockResourceIds = [];
     let seller = null; // For multi-vendor, manual order might be restricted to single seller or handling mixed
     // For simplicity, let's assume manual order items belong to the logged-in seller if seller, or any if admin
     // If admin, we might need to split orders if multi-vendor, but let's stick to simple logic for now:
@@ -390,6 +399,9 @@ class OrderService {
         currentPrice = sku.price;
         skuCode = sku.skuCode;
         variationText = getVariationText(product.tierVariations, sku.tierIndex);
+        lockResourceIds.push(item.skuId.toString());
+      } else {
+        lockResourceIds.push(product._id.toString());
       }
 
       if (availableStock < item.quantity) {
@@ -399,6 +411,14 @@ class OrderService {
       // Set seller from first product (or logic to multiple sellers)
       if (!seller) seller = product.seller;
 
+      let orderItemImage = product.images?.[0] || '';
+      if (item.skuId && product.skus && product.skus.length > 0) {
+        const sku = product.skus.id(item.skuId);
+        if (sku && sku.images && sku.images.length > 0) {
+          orderItemImage = sku.images[0];
+        }
+      }
+
       orderItems.push({
         product: product._id,
         skuId: item.skuId,
@@ -407,7 +427,7 @@ class OrderService {
         name: product.name,
         price: currentPrice,
         quantity: item.quantity,
-        image: product.images[0] || '',
+        image: orderItemImage,
       });
     }
 
