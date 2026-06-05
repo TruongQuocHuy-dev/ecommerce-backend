@@ -72,7 +72,9 @@ class OrderController {
       const filters = { 
         status: req.query.status, 
         userId: req.query.userId,
-        asSeller: req.query.asSeller === 'true'
+        asSeller: req.query.asSeller === 'true',
+        search: req.query.search,
+        paymentStatus: req.query.paymentStatus
       };
       const options = { page: req.query.page, limit: req.query.limit };
 

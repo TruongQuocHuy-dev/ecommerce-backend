@@ -545,7 +545,7 @@ class OrderService {
    * Get user orders with pagination
    */
   static getUserOrders = async (userId, userRole, filters, options) => {
-    const { status, userId: filterUserId, asSeller } = filters;
+    const { status, userId: filterUserId, asSeller, search, paymentStatus } = filters;
     const { page = 1, limit = 10 } = options;
 
     const query = {};
@@ -562,6 +562,33 @@ class OrderService {
 
     if (status) {
       query.status = status;
+    }
+
+    if (paymentStatus) {
+      query['paymentInfo.status'] = paymentStatus;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      const searchConditions = [
+        { orderNumber: { $regex: searchRegex } }
+      ];
+
+      // Only search users if search is performed by admin or seller
+      if (userRole === 'admin' || userRole === 'seller') {
+        const matchingUsers = await User.find({
+          $or: [
+            { name: { $regex: searchRegex } },
+            { email: { $regex: searchRegex } }
+          ]
+        }).select('_id');
+        
+        if (matchingUsers.length > 0) {
+          searchConditions.push({ user: { $in: matchingUsers.map(u => u._id) } });
+        }
+      }
+
+      query.$or = searchConditions;
     }
 
     const pageNum = parseInt(page);
