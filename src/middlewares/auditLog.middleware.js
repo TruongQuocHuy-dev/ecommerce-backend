@@ -37,16 +37,42 @@ const auditLogger = (options = {}) => {
         const pathParts = urlPath.split('/').filter((part) => part && part !== 'api' && part !== 'v1');
         let entityRaw = pathParts[0] || 'unknown';
 
-        // Singularize naive plural only when ending with 's'
-        if (entityRaw.endsWith('s') && entityRaw.length > 1) {
-            entityRaw = entityRaw.slice(0, -1);
-        }
+        // Dictionary to map API routes to database model entities correctly
+        const entityMappings = {
+            categories: 'Category',
+            users: 'User',
+            products: 'Product',
+            orders: 'Order',
+            discounts: 'Discount',
+            shops: 'Shop',
+            inventory: 'Inventory',
+            reviews: 'Review',
+            settings: 'Setting',
+            banners: 'Banner',
+            vouchers: 'Voucher',
+            flashsales: 'FlashSale',
+            'flash-sales': 'FlashSale',
+            reports: 'Report',
+            transactions: 'Transaction',
+            brands: 'Brand',
+            suppliers: 'Supplier',
+        };
 
-        // Normalize entity name (capitalize)
-        const entity =
-            entityRaw === 'unknown'
-                ? 'Unknown'
-                : entityRaw.charAt(0).toUpperCase() + entityRaw.slice(1);
+        let entity;
+        const normalizedRaw = entityRaw.toLowerCase();
+        if (entityMappings[normalizedRaw]) {
+            entity = entityMappings[normalizedRaw];
+        } else {
+            // Singularize naive plural only when ending with 's'
+            if (entityRaw.endsWith('s') && entityRaw.length > 1) {
+                entityRaw = entityRaw.slice(0, -1);
+            }
+            // Normalize entity name (capitalize)
+            entity =
+                entityRaw === 'unknown'
+                    ? 'Unknown'
+                    : entityRaw.charAt(0).toUpperCase() + entityRaw.slice(1);
+        }
 
             // Get entity ID from params or body
             const entityId =
