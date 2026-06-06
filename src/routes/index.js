@@ -57,6 +57,7 @@ router.use('/discounts', discountRoutes);
 
 // Review management routes (Admin)
 router.get('/reviews/admin', authenticate, authorize('admin'), reviewController.getAllReviewsForAdmin);
+router.get('/reviews/admin/products', authenticate, authorize('admin'), reviewController.getProductsWithReviews);
 router.patch('/reviews/:id/approve', authenticate, authorize('admin'), reviewController.approveReview);
 router.patch('/reviews/:id/reject', authenticate, authorize('admin'), reviewController.rejectReview);
 

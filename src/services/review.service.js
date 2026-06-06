@@ -423,8 +423,7 @@ class ReviewService {
     return {
       averageRating: stats.averageRating,
       totalReviews: stats.totalReviews,
-      distribution: stats.distribution,
-      distribution,
+      distribution: percentages,
     };
   };
 
@@ -432,7 +431,7 @@ class ReviewService {
    * Get all reviews for admin (with pagination and filters)
    */
   static getAllReviewsForAdmin = async (filters, options) => {
-    const { search, rating, status } = filters;
+    const { search, rating, status, productId } = filters;
     const { page = 1, limit = 15 } = options;
 
     const query = {};
@@ -446,6 +445,10 @@ class ReviewService {
 
     if (rating && rating !== 'all') {
       query.rating = parseInt(rating);
+    }
+
+    if (productId) {
+      query.product = productId;
     }
 
     // Note: Review model doesn't have status field currently
@@ -511,6 +514,46 @@ class ReviewService {
     // await review.save();
 
     return review;
+  };
+
+  /**
+   * Get list of products that have reviews (admin)
+   */
+  static getProductsWithReviews = async () => {
+    const mongoose = require('mongoose');
+    const stats = await Review.aggregate([
+      {
+        $group: {
+          _id: '$product',
+          reviewCount: { $sum: 1 },
+          averageRating: { $avg: '$rating' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'productDetails',
+        },
+      },
+      { $unwind: '$productDetails' },
+      {
+        $project: {
+          _id: 0,
+          id: '$_id',
+          name: '$productDetails.name',
+          images: '$productDetails.images',
+          price: '$productDetails.price',
+          reviewCount: 1,
+          averageRating: { $round: ['$averageRating', 1] },
+        },
+      },
+      {
+        $sort: { reviewCount: -1 },
+      }
+    ]);
+    return stats;
   };
 }
 

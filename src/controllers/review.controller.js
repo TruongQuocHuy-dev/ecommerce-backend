@@ -171,6 +171,7 @@ class ReviewController {
         search: req.query.search,
         rating: req.query.rating,
         status: req.query.status,
+        productId: req.query.productId,
       };
       const options = {
         page: req.query.page || 1,
@@ -181,6 +182,23 @@ class ReviewController {
 
       new OK({
         message: 'Reviews retrieved successfully',
+        data: result,
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/v1/reviews/admin/products
+   * Get products with reviews for admin
+   */
+  getProductsWithReviews = async (req, res, next) => {
+    try {
+      const result = await ReviewService.getProductsWithReviews();
+
+      new OK({
+        message: 'Products with reviews retrieved successfully',
         data: result,
       }).send(res);
     } catch (error) {
