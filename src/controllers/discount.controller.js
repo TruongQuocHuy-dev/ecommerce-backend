@@ -36,9 +36,9 @@ class DiscountController {
    */
   getAllDiscounts = async (req, res, next) => {
     try {
-      const { isActive, type, page, limit } = req.query;
+      const { isActive, type, scope, search, status, page, limit } = req.query;
       const result = await DiscountService.getAllDiscounts(
-        { isActive, type },
+        { isActive, type, scope, search, status },
         { page, limit }
       );
 

@@ -126,6 +126,14 @@ router.post(
       .optional()
       .isArray()
       .withMessage('Applicable products must be an array'),
+    body('scope')
+      .optional()
+      .isIn(['system', 'shop'])
+      .withMessage('Scope must be system or shop'),
+    body('shopId')
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid shopId'),
   ],
   discountController.createDiscount
 );
@@ -154,6 +162,14 @@ router.patch(
       .optional()
       .isFloat({ min: 0 })
       .withMessage('Value must be positive'),
+    body('scope')
+      .optional()
+      .isIn(['system', 'shop'])
+      .withMessage('Scope must be system or shop'),
+    body('shopId')
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid shopId'),
   ],
   discountController.updateDiscount
 );

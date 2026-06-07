@@ -31,6 +31,7 @@ class DiscountService {
       applicableCategories,
       applicableProducts,
       scope,
+      shopId,
     } = discountData;
 
     // Validate dates
@@ -68,6 +69,7 @@ class DiscountService {
       applicableProducts: applicableProducts || [],
       isActive: true,
       scope: scope || 'shop',
+      shopId: scope === 'shop' ? shopId : undefined,
       createdBy: adminId,
     });
 
@@ -85,6 +87,8 @@ class DiscountService {
         usageLimit: discount.usageLimit,
         usagePerUser: discount.usagePerUser,
         isActive: discount.isActive,
+        scope: discount.scope,
+        shopId: discount.shopId,
       },
     };
   };
@@ -93,15 +97,37 @@ class DiscountService {
    * Get all discounts (Admin only)
    */
   static getAllDiscounts = async (filters = {}, options = {}) => {
-    const { isActive, type } = filters;
+    const { isActive, type, scope, search, status } = filters;
     const { page = 1, limit = 20 } = options;
 
     const query = {};
-    if (isActive !== undefined) {
+    const now = new Date();
+
+    if (status === 'active') {
+      query.isActive = true;
+      query.startDate = { $lte: now };
+      query.endDate = { $gte: now };
+    } else if (status === 'inactive') {
+      query.isActive = false;
+    } else if (status === 'expired') {
+      query.endDate = { $lt: now };
+    } else if (isActive !== undefined) {
       query.isActive = isActive === 'true' || isActive === true;
     }
-    if (type) {
+
+    if (type && type !== 'all') {
       query.type = type;
+    }
+
+    if (scope && scope !== 'all') {
+      query.scope = scope;
+    }
+
+    if (search) {
+      query.$or = [
+        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+      ];
     }
 
     const pageNum = parseInt(page);
@@ -110,6 +136,8 @@ class DiscountService {
 
     const [discounts, totalCount] = await Promise.all([
       Discount.find(query)
+        .populate('shopId', 'name email')
+        .populate('createdBy', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
@@ -133,6 +161,9 @@ class DiscountService {
         usageCount: d.usageCount,
         usagePerUser: d.usagePerUser,
         isActive: d.isActive,
+        scope: d.scope,
+        shopId: d.shopId,
+        createdBy: d.createdBy,
         isValid: d.isActive && new Date() >= d.startDate && new Date() <= d.endDate,
       })),
       pagination: {
@@ -457,7 +488,9 @@ class DiscountService {
   static getDiscountById = async (discountId) => {
     const discount = await Discount.findById(discountId)
       .populate('applicableCategories', 'name')
-      .populate('applicableProducts', 'name');
+      .populate('applicableProducts', 'name')
+      .populate('shopId', 'name email')
+      .populate('usedBy.user', 'name email');
 
     if (!discount) {
       throw new NotFoundError('Discount not found');
@@ -482,7 +515,14 @@ class DiscountService {
         applicableProducts: discount.applicableProducts,
         isActive: discount.isActive,
         isValid: discount.isValid,
-        usedBy: discount.usedBy.length,
+        scope: discount.scope,
+        shopId: discount.shopId,
+        usedBy: discount.usedBy.map(u => ({
+          user: u.user,
+          usedAt: u.usedAt,
+          orderId: u.orderId,
+          amount: u.amount
+        })),
         createdAt: discount.createdAt,
       },
     };
