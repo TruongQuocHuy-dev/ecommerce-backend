@@ -218,6 +218,29 @@ class SettingController {
         }
     }
 
+    // @desc    Update setting by key
+    // @route   PUT /api/v1/settings/:key
+    // @access  Private/Admin
+    async updateSetting(req, res) {
+        try {
+            const setting = await SettingService.updateSetting(
+                req.params.key,
+                req.body,
+                req.user.userId
+            );
+            res.status(200).json({
+                success: true,
+                message: `Setting '${req.params.key}' updated`,
+                data: setting,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
     // @desc    Initialize default settings
     // @route   POST /api/v1/settings/init
     // @access  Private/Admin

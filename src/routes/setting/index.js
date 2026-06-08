@@ -30,6 +30,9 @@ router.put('/general', authenticate, authorize('admin'), settingController.updat
 // Update shipping settings
 router.put('/shipping', authenticate, authorize('admin'), settingController.updateShipping);
 
+// Update generic setting by key (e.g., security, notifications)
+router.put('/:key', authenticate, authorize('admin'), settingController.updateSetting);
+
 // Banner management (Admin)
 router.post('/banners', authenticate, authorize('admin'), upload.single('image'), settingController.addBanner);
 router.put('/banners/reorder', authenticate, authorize('admin'), settingController.reorderBanners);

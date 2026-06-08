@@ -34,6 +34,27 @@ const DEFAULT_SETTINGS = {
         description: 'Homepage banner management',
         isPublic: true,
     },
+    security: {
+        value: {
+            twoFactorAuth: false,
+            passwordMinLength: 8,
+            sessionTimeout: '2h',
+            loginAttemptsLimit: 5,
+        },
+        description: 'Security and admin portal safety configuration',
+        isPublic: false,
+    },
+    notifications: {
+        value: {
+            emailNotifications: true,
+            orderCreatedAlert: true,
+            lowStockAlert: true,
+            lowStockThreshold: 10,
+            weeklyReport: false,
+        },
+        description: 'System notification triggers and configuration',
+        isPublic: false,
+    },
 };
 
 class SettingService {
@@ -259,6 +280,18 @@ class SettingService {
             case 'banners':
                 if (!Array.isArray(value)) {
                     throw new Error('Banners must be an array');
+                }
+                break;
+
+            case 'security':
+                if (typeof value !== 'object' || value === null) {
+                    throw new Error('Security settings must be an object');
+                }
+                break;
+
+            case 'notifications':
+                if (typeof value !== 'object' || value === null) {
+                    throw new Error('Notification settings must be an object');
                 }
                 break;
         }
