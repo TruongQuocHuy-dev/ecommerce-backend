@@ -21,6 +21,7 @@ class AuditLogService {
     async getLogs(filters = {}) {
         const {
             userId,
+            searchUser,
             action,
             entity,
             entityId,
@@ -33,7 +34,20 @@ class AuditLogService {
 
         const query = {};
 
-        if (userId) query.userId = userId;
+        if (userId) {
+            query.userId = userId;
+        } else if (searchUser) {
+            const User = require('../models/user.model');
+            const matchingUsers = await User.find({
+                $or: [
+                    { name: { $regex: searchUser, $options: 'i' } },
+                    { email: { $regex: searchUser, $options: 'i' } }
+                ]
+            }).select('_id');
+            const userIds = matchingUsers.map(u => u._id);
+            query.userId = { $in: userIds };
+        }
+
         if (action) query.action = action;
         if (entity) query.entity = entity;
         if (entityId) query.entityId = entityId;
