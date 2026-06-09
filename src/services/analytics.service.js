@@ -52,8 +52,8 @@ class AnalyticsService {
             Order.countDocuments({ status: 'delivered' }),
             Order.countDocuments({ status: 'cancelled' }),
             Product.countDocuments(),
-            User.countDocuments({ role: 'customer' }),
-            User.countDocuments({ role: 'customer', createdAt: { $gte: startOfMonth(new Date()) } }),
+            User.countDocuments({ role: 'user' }),
+            User.countDocuments({ role: 'user', createdAt: { $gte: startOfMonth(new Date()) } }),
             Shop.countDocuments({ status: 'approved' }),
             Shop.countDocuments({ status: 'pending' })
         ]);
@@ -158,11 +158,25 @@ class AnalyticsService {
             },
             { $unwind: '$productInfo' },
             {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'productInfo.category',
+                    foreignField: '_id',
+                    as: 'categoryInfo'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$categoryInfo',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
                 $project: {
                     name: '$productInfo.name',
                     image: { $arrayElemAt: ['$productInfo.images', 0] },
                     price: '$productInfo.price',
-                    category: '$productInfo.category',
+                    category: { $ifNull: ['$categoryInfo.name', 'No Category'] },
                     totalSold: 1,
                     totalRevenue: 1
                 }
@@ -202,7 +216,7 @@ class AnalyticsService {
             {
                 $match: {
                     createdAt: { $gte: start, $lte: end },
-                    role: 'customer'
+                    role: 'user'
                 }
             },
             {
