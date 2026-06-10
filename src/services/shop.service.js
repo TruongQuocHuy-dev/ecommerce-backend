@@ -309,6 +309,15 @@ class ShopService {
 
         await shop.save();
 
+        // Notify user about suspension
+        await NotificationService.createNotification({
+            userId: shop.owner,
+            type: 'SYSTEM',
+            title: 'Cửa hàng bị tạm khóa',
+            message: `Rất tiếc, cửa hàng "${shop.name}" của bạn đã bị tạm khóa. Lý do: ${reason}`,
+            data: { shopId: shop._id, reason },
+        });
+
         return shop;
     }
 
@@ -330,6 +339,16 @@ class ShopService {
         shop.suspensionReason = undefined;
 
         await shop.save();
+
+        // Notify user about reactivation
+        await NotificationService.createNotification({
+            userId: shop.owner,
+            type: 'SYSTEM',
+            title: 'Cửa hàng đã hoạt động trở lại',
+            message: `Chúc mừng! Cửa hàng "${shop.name}" của bạn đã được kích hoạt hoạt động trở lại.`,
+            link: '/seller/dashboard',
+            data: { shopId: shop._id },
+        });
 
         return shop;
     }

@@ -87,7 +87,7 @@ class ProductController {
    */
   getProduct = async (req, res, next) => {
     try {
-      const result = await ProductService.getProductById(req.params.id);
+      const result = await ProductService.getProductById(req.params.id, req.user);
 
       new OK({
         message: 'Product retrieved successfully',

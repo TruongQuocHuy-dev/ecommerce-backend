@@ -317,6 +317,9 @@ class ProductService {
     if (!shop) {
       throw new BadRequestError('Seller does not have an active shop');
     }
+    if (shop.status !== 'approved' && seller.role !== 'admin') {
+      throw new ForbiddenError('Cửa hàng của bạn đang bị khóa hoặc chưa được duyệt. Không thể đăng sản phẩm.');
+    }
 
     // Parse and map SKU images
     let parsedSkus = this.parseJsonArrayField(skus, 'skus');
@@ -429,6 +432,16 @@ class ProductService {
 
     // Build query
     const query = {};
+
+    // Filter out products of non-approved/suspended shops for public views
+    if (approvalStatus === 'approved') {
+      const Shop = require('../models/shop.model');
+      const inactiveShops = await Shop.find({ status: { $ne: 'approved' } }).select('_id');
+      if (inactiveShops.length > 0) {
+        const inactiveShopIds = inactiveShops.map(s => s._id);
+        query.shop = { $nin: inactiveShopIds };
+      }
+    }
 
     // Active filter (default true for public, but allow admin to see all)
     if (isActive !== 'all') {
@@ -548,7 +561,7 @@ class ProductService {
   /**
    * Get single product by ID
    */
-  static getProductById = async (productId) => {
+  static getProductById = async (productId, user = null) => {
     const product = await Product.findById(productId)
       .populate('category', 'name slug description')
       .populate('brand', 'name slug description country')
@@ -557,6 +570,18 @@ class ProductService {
 
     if (!product) {
       throw new NotFoundError('Product not found');
+    }
+
+    // Check shop status if not admin and not the seller who owns the product
+    const isAdmin = user && user.role === 'admin';
+    const isOwner = user && product.seller && product.seller._id.toString() === user.userId;
+
+    if (!isAdmin && !isOwner) {
+      const Shop = require('../models/shop.model');
+      const shop = await Shop.findById(product.shop);
+      if (!shop || shop.status !== 'approved') {
+        throw new NotFoundError('Cửa hàng của sản phẩm này đã bị tạm khóa hoặc ngừng hoạt động');
+      }
     }
 
     return {
@@ -608,6 +633,14 @@ class ProductService {
       user.role !== 'admin'
     ) {
       throw new ForbiddenError('You are not authorized to update this product');
+    }
+
+    if (user.role !== 'admin') {
+      const Shop = require('../models/shop.model');
+      const shop = await Shop.findOne({ owner: product.seller });
+      if (!shop || shop.status !== 'approved') {
+        throw new ForbiddenError('Cửa hàng của bạn đang bị khóa hoặc chưa được duyệt. Không thể chỉnh sửa sản phẩm.');
+      }
     }
 
     // If category is being updated, verify it exists

@@ -72,6 +72,12 @@ class OrderService {
         throw new BadRequestError(`Product ${product.name} is no longer available`);
       }
 
+      // Check if shop is active and approved
+      const shop = await Shop.findById(product.shop);
+      if (!shop || shop.status !== 'approved') {
+        throw new BadRequestError(`Cửa hàng của sản phẩm ${product.name} hiện đang bị tạm khóa hoặc ngừng hoạt động.`);
+      }
+
       // SKU-aware stock checking
       let availableStock = product.stock;
       let currentPrice = product.price;
