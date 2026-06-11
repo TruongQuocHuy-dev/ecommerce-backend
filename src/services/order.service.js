@@ -73,7 +73,12 @@ class OrderService {
       }
 
       // Check if shop is active and approved
-      const shop = await Shop.findById(product.shop);
+      let shop = null;
+      if (product.shop) {
+        shop = await Shop.findById(product.shop);
+      } else if (product.seller) {
+        shop = await Shop.findOne({ owner: product.seller });
+      }
       if (!shop || shop.status !== 'approved') {
         throw new BadRequestError(`Cửa hàng của sản phẩm ${product.name} hiện đang bị tạm khóa hoặc ngừng hoạt động.`);
       }

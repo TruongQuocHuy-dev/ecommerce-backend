@@ -578,7 +578,12 @@ class ProductService {
 
     if (!isAdmin && !isOwner) {
       const Shop = require('../models/shop.model');
-      const shop = await Shop.findById(product.shop);
+      let shop = null;
+      if (product.shop) {
+        shop = await Shop.findById(product.shop);
+      } else if (product.seller) {
+        shop = await Shop.findOne({ owner: product.seller._id || product.seller });
+      }
       if (!shop || shop.status !== 'approved') {
         throw new NotFoundError('Cửa hàng của sản phẩm này đã bị tạm khóa hoặc ngừng hoạt động');
       }

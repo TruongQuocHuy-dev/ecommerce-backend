@@ -149,6 +149,10 @@ const productSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Product must have a seller'],
     },
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Shop',
+    },
     // Ratings
     averageRating: {
       type: Number,

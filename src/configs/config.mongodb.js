@@ -20,6 +20,28 @@ const connectDB = async () => {
     await SettingService.initializeDefaults();
     console.log('✅ Default settings initialized');
 
+    // Run one-time migration for products missing the shop field
+    try {
+      const Product = require('../models/product.model');
+      const Shop = require('../models/shop.model');
+      const productsWithoutShop = await Product.find({ shop: { $exists: false } });
+      if (productsWithoutShop.length > 0) {
+        console.log(`🧹 Found ${productsWithoutShop.length} products without a shop field. Starting migration...`);
+        let migratedCount = 0;
+        for (const product of productsWithoutShop) {
+          const shop = await Shop.findOne({ owner: product.seller });
+          if (shop) {
+            product.shop = shop._id;
+            await product.save({ validateBeforeSave: false });
+            migratedCount++;
+          }
+        }
+        console.log(`✅ Migrated ${migratedCount}/${productsWithoutShop.length} products with their correct shop field.`);
+      }
+    } catch (migrationError) {
+      console.error('❌ Error during product shop field migration:', migrationError);
+    }
+
     // Connection event listeners
     mongoose.connection.on('connected', () => {
       console.log('Mongoose connected to DB');
