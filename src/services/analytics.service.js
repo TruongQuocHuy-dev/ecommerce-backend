@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Order = require('../models/order.model');
 const Product = require('../models/product.model');
 const User = require('../models/user.model');
@@ -232,6 +233,181 @@ class AnalyticsService {
             date: g._id,
             users: g.count
         }));
+    }
+
+    async getSellerOverviewStats(sellerId) {
+        const sellerObjId = new mongoose.Types.ObjectId(sellerId);
+
+        const [
+            revenue,
+            orders,
+            pendingOrders,
+            deliveredOrders,
+            canceledOrders,
+            products
+        ] = await Promise.all([
+            Order.aggregate([
+                { $match: { seller: sellerObjId, status: 'delivered' } },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            Order.countDocuments({ seller: sellerId }),
+            Order.countDocuments({ seller: sellerId, status: 'pending' }),
+            Order.countDocuments({ seller: sellerId, status: 'delivered' }),
+            Order.countDocuments({ seller: sellerId, status: 'cancelled' }),
+            Product.countDocuments({ seller: sellerId })
+        ]);
+
+        // Get previous month stats for comparison
+        const lastMonthStart = startOfMonth(subMonths(new Date(), 1));
+        const lastMonthEnd = endOfMonth(subMonths(new Date(), 1));
+
+        const [prevRevenue, prevOrders] = await Promise.all([
+            Order.aggregate([
+                {
+                    $match: {
+                        seller: sellerObjId,
+                        status: 'delivered',
+                        createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            Order.countDocuments({ seller: sellerId, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } })
+        ]);
+
+        const totalRevenue = revenue[0]?.total || 0;
+        const previousRevenue = prevRevenue[0]?.total || 0;
+        const revenueGrowth = previousRevenue === 0 ? (totalRevenue > 0 ? 100 : 0) : ((totalRevenue - previousRevenue) / previousRevenue) * 100;
+
+        const totalOrders = orders;
+        const previousOrders = prevOrders;
+        const ordersGrowth = previousOrders === 0 ? (totalOrders > 0 ? 100 : 0) : ((totalOrders - previousOrders) / previousOrders) * 100;
+
+        const cancellationRate = totalOrders === 0 ? 0 : (canceledOrders / totalOrders) * 100;
+
+        return {
+            totalRevenue,
+            revenueGrowth: parseFloat(revenueGrowth.toFixed(1)),
+            totalOrders,
+            ordersGrowth: parseFloat(ordersGrowth.toFixed(1)),
+            pendingOrders,
+            totalProducts: products,
+            deliveredOrders,
+            canceledOrders,
+            cancellationRate: parseFloat(cancellationRate.toFixed(1))
+        };
+    }
+
+    async getSellerRevenueAnalytics(sellerId, { startDate, endDate, period }) {
+        const { start, end } = this.getDateRange(startDate, endDate, period);
+        const sellerObjId = new mongoose.Types.ObjectId(sellerId);
+
+        const revenueByDate = await Order.aggregate([
+            {
+                $match: {
+                    seller: sellerObjId,
+                    status: 'delivered',
+                    createdAt: { $gte: start, $lte: end }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    revenue: { $sum: "$totalAmount" },
+                    orders: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        return {
+            chartData: revenueByDate.map(item => ({
+                date: item._id,
+                revenue: item.revenue,
+                orders: item.orders
+            })),
+            totalRevenue: revenueByDate.reduce((acc, curr) => acc + curr.revenue, 0),
+            totalOrders: revenueByDate.reduce((acc, curr) => acc + curr.orders, 0)
+        };
+    }
+
+    async getSellerTopProducts(sellerId, { limit = 5 }) {
+        const sellerObjId = new mongoose.Types.ObjectId(sellerId);
+
+        const topProducts = await Order.aggregate([
+            { $match: { seller: sellerObjId, status: 'delivered' } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    name: { $first: '$items.name' },
+                    totalSold: { $sum: '$items.quantity' },
+                    totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+                }
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: parseInt(limit) },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'productInfo.category',
+                    foreignField: '_id',
+                    as: 'categoryInfo'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$categoryInfo',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    name: '$productInfo.name',
+                    image: { $arrayElemAt: ['$productInfo.images', 0] },
+                    price: '$productInfo.price',
+                    category: { $ifNull: ['$categoryInfo.name', 'No Category'] },
+                    totalSold: 1,
+                    totalRevenue: 1
+                }
+            }
+        ]);
+
+        return topProducts;
+    }
+
+    async getSellerOrderStatusDistribution(sellerId) {
+        const sellerObjId = new mongoose.Types.ObjectId(sellerId);
+
+        const distribution = await Order.aggregate([
+            { $match: { seller: sellerObjId } },
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const allStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        const result = allStatuses.map(status => {
+            const found = distribution.find(d => d._id === status);
+            return {
+                status,
+                count: found ? found.count : 0
+            };
+        });
+
+        return result;
     }
 }
 
